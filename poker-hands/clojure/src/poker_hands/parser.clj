@@ -1,5 +1,5 @@
-(ns poker-hand.parser
-  (:use [poker-hand.deck]))
+(ns poker-hands.parser
+  (:use [poker-hands.deck]))
 
 (defn split-players [h]
   (clojure.string/split h #"  "))
@@ -14,10 +14,11 @@
 
 (defn build-hand-map [h]
   (map #(list (first %) 
-              (map (fn [c] (hash-map :face (str (first c))
+              (hash-map :cards
+                        (map (fn [c] (hash-map :face (str (first c))
                                      :suit (suit (last c))
                                      :rank (rank (first c))))
-                   (last %))) 
+                             (last %))) )
        h))
 
 (defn build-player-hand-map [h]

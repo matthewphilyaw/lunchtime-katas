@@ -1,4 +1,4 @@
-(ns poker-hand.deck)
+(ns poker-hands.deck)
 
 (def rank {
   \2 13
