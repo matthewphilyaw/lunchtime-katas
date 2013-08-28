@@ -10,9 +10,6 @@
                  :one-pair        8
                  :high-card       9})
 
-(defn- abs [n]
-  (if (< n 0) (* n -1) n))
-
 (defn- add-hand-info [h kind high-card-fn]
   (into h {:kind kind 
            :rank (hand-ranks kind) 
@@ -30,16 +27,15 @@
        (take (count c) (map #(% :rank) c))))
 
 (defn- straight [c]
-  (not (some #(> % 0) 
-             (map #(abs (reduce - %))
+  (not (some #(not (= % 0))
+             (map #(reduce - %)
                   (pair-up-with-seq c)))))
 
-(defn- a-flush [h]
-  (let [suit ((h :cards) :suit)]
-    (every-pred #(= (% :suit) suit) h)))
+(defn- a-flush [c]
+  (= (count (distinct (map #(% :suit) c))) 1))
     
 (defn- is-straight-flush [h] 
-  (and (straight(h :cards)) 
+  (and (straight (h :cards)) 
        (a-flush (h :cards))
        (add-hand-info h 
                       :straight-flush
