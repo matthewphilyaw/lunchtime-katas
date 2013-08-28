@@ -17,8 +17,8 @@
 
 (defn- when-no-rank [hand rank-fn]
   (let [{:keys [rank], :or {rank nil}} hand]
-    (if (nil? rank)
-        (or (rank-fn hand) hand)
+    (or (and (nil? rank)
+             (rank-fn hand))
         hand)))
 
 (defn- pair-up-with-seq [c]
