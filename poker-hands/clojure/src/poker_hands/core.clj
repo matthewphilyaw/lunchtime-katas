@@ -2,7 +2,7 @@
   (:use [poker-hands.parser]
         [poker-hands.hands]))
 
-(def test-input "white: 8c 9d ts jd qh  black: 9d th js kd qc")
+(def test-input "white: td kd jd qd ad  black: 9d th js kd qc")
 
 (defn -main [& args]
  (let [hand (winning-hand (map rank-hand (parse-input test-input)))]
