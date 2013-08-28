@@ -24,15 +24,29 @@
        (take (count c) (iterate inc ((first c) :rank)))
        (take (count c) (map #(% :rank) c))))
 
+(defn- straight [c]
+  (not (some #(> % 0) 
+             (map #(abs (reduce - %))
+                  (pair-up-with-seq c)))))
+    
+
 (defn- is-straight [h]
   (let [cards (sort-by #(% :rank) (h :cards))]
-    (let [straight (reduce + (map #(abs (reduce - %))
-                                  (pair-up-with-seq cards)))]
-      (if (= straight 0)
-        (into h {:kind :straight :rank (hand-ranks :straight) :high-card (first cards)})
-        h))))
+    (if (straight cards) 
+      (into h {:kind :straight 
+               :rank (hand-ranks :straight) 
+               :high-card (first cards)})
+      h)))
 
 (defn rank-hand [h]
   (-> 
     (is-straight h)))
 
+
+(defn winning-hand [hands]
+  (first (sort #(if (= (%1 :rank) (%2 :rank))
+                    (compare ((%1 :high-card) :rank)
+                             ((%2 :high-card) :rank))
+                    (compare (%1 :rank) 
+                             (%2 :rank)))
+               hands)))

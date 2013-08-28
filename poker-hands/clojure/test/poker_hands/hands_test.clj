@@ -2,14 +2,8 @@
   (:require [clojure.test :refer :all]
             [poker-hands.hands :refer :all]))
 
-(def straight-flush-hand {:hand {:cards '({:rank 13, :face "2", :suit :clubs}
-                                          {:rank 12, :face "3", :suit :clubs}
-                                          {:rank 11, :face "4", :suit :clubs}
-                                          {:rank 10, :face "5", :suit :clubs}
-                                          {:rank 9, :face "6", :suit :clubs})}})
+(def test-input "white: 8c 9d ts jd qh  black: 9d th js kd qc")
 
-(deftest straight-flush-test
-  (testing "test for straight flush"
-    (is (= :straight-flush 
-           (((is-straight-flush straight-flush-hand) :hand) :kind)))))
-
+(deftesting
+  (testing "straigh flush hand"
+    (rank-hand )
