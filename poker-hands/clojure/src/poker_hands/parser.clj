@@ -16,9 +16,9 @@
   (map #(list (first %) 
               (hash-map :cards
                         (map (fn [c] (hash-map :face (str (first c))
-                                     :suit (suit (last c))
-                                     :rank (rank (first c))))
-                             (last %))) )
+                                               :suit (suit (last c))
+                                               :rank (rank (first c))))
+                             (last %))))
        h))
 
 (defn build-player-hand-map [h]

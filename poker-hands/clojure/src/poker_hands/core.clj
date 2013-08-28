@@ -1,14 +1,19 @@
 (ns poker-hands.core
-  (:use [poker-hands.hands]))
+  (:use [poker-hands.parser]
+        [poker-hands.hands]))
 
-(def test-input "white: 2d 4d 5h ks 6c  black: 5d 7h 8h 9h 9c")
-
-(def straight-flush-hand {:hand
-                          {:cards '({:rank 13, :face "2", :suit :clubs}
-                                    {:rank 12, :face "3", :suit :clubs}
-                                    {:rank 11, :face "4", :suit :clubs}
-                                    {:rank 10, :face "5", :suit :clubs}
-                                    {:rank 9, :face "6", :suit :clubs})}})
+(def test-input "white: 8c 9d ts jd qh  black: 9d th js kd qc")
 
 (defn -main [& args]
-  (prn (is-straight-flush straight-flush-hand)))
+  (let [winner (first (sort #(if (= ((%1 :hand) :rank) ((%2 :hand) :rank))
+                         (compare (((%1 :hand) :high-card) :rank)
+                                  (((%2 :hand) :high-card) :rank))
+                         (compare ((%1 :hand) :rank) 
+                                  ((%2 :hand) :rank)))
+
+                    (map #(assoc-in % 
+                                    [:hand] 
+                                    (rank-hand (% :hand)))
+                         (parse-input test-input))))]
+  (prn :player (winner :player))
+  (prn :hand ((winner :hand) :kind))))
