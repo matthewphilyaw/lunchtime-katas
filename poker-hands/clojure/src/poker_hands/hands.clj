@@ -10,10 +10,11 @@
                  :one-pair        8
                  :high-card       9})
 
-(defn- add-hand-info [h kind high-card-fn]
-  (into h {:kind kind 
-           :rank (hand-ranks kind) 
-           :high-card (high-card-fn h)}))
+(defn- hand-info [kind best-hand remainder]
+  {:kind kind 
+   :rank (hand-ranks kind) 
+   :best-hand best-hand 
+   :remainder remainder})
 
 (defn- when-no-rank [hand rank-fn]
   (let [{:keys [rank], :or {rank nil}} hand]
@@ -21,31 +22,26 @@
              (rank-fn hand))
         hand)))
 
-(defn- pair-up-with-seq [c]
-  (map vector 
-       (take (count c) (iterate inc ((first c) :rank)))
-       (take (count c) (map #(% :rank) c))))
-
-(defn- straight [c]
-  (not (some #(not (= % 0))
-             (map #(reduce - %)
-                  (pair-up-with-seq c)))))
+(defn- a-straight [c]
+  (let [ranks (map :rank c)]
+    (every? true? (map #(= (- %1 %2) 1) (rest ranks) ranks))))
 
 (defn- a-flush [c]
-  (= (count (distinct (map #(% :suit) c))) 1))
+  (let [suits (map :suit c)]
+   (every? true? (map #(= (first suits) %) suits)))) 
     
 (defn- is-straight-flush [h] 
-  (and (straight (h :cards)) 
+  (and (a-straight (h :cards)) 
        (a-flush (h :cards))
-       (add-hand-info h 
-                      :straight-flush
-                      (fn [h] (first (h :cards))))))
+       (into h (hand-info :straight-flush
+                          (h :cards)
+                          nil))))
 
 (defn- is-straight [h]
-  (and (straight (h :cards)) 
-       (add-hand-info h 
-                      :straight 
-                      (fn [h] (first (h :cards))))))
+  (and (a-straight (h :cards)) 
+       (into h (hand-info :straight
+                          (h :cards)
+                          nil))))
 
 (defn rank-hand [h]
   (-> 
