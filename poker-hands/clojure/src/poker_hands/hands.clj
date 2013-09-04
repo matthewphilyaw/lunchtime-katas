@@ -10,11 +10,87 @@
                  :one-pair        8
                  :high-card       9})
 
-(defn- hand-info [kind best-hand remainder]
-  {:kind kind 
-   :rank (hand-ranks kind) 
-   :best-hand best-hand 
-   :remainder remainder})
+(defn- add-hand-info [hand kind]
+  (into hand
+        {:rank (kind hand-ranks)
+         :kind kind}))
+
+(defn- group-by-rank [hand]
+  (seq (group-by :rank (:cards hand))))
+
+(defn- build-group-map [grouped] 
+  (map #(hash-map :rank (first %)
+                  :size (count (last %))
+                  :cards (last %)) grouped))
+
+(defn- order-by-size-then-rank [groups]
+  (sort #(or (and (= (:size %1) (:size %2))
+                  (compare (:rank %1) (:rank %2)))
+             (* (compare (:size %1) (:size %2)) -1))
+        groups))
+
+(defn- order-by-hand [hand]
+  (assoc-in hand [:cards] 
+            (-> (group-by-rank hand)
+                build-group-map
+                order-by-size-then-rank)))
+
+(defn- filter-by-size [cards size]
+  (filter #(= (:size %) size) cards))
+
+(defn- straight [ranks]
+    (every? true? (map #(= (- %1 %2) 1) (rest ranks) ranks)))
+
+(defn- flush [suits]
+   (every? true? (map #(= (first suits) %) suits)))
+
+(defn- are-single-groups [hand & {:keys [a-straight a-flush]}]
+  (and (= 5 (count (filter-by-size (:cards hand) 1)))
+       (= (straight (map :rank 
+                         (:cards hand))) 
+          a-straight)
+       (= (flush (map #(:suit (first (:cards %))) 
+                      (:cards hand)))
+          a-flush)))
+
+(defn- is-straight-flush [hand] 
+  (and (are-single-groups hand :a-straight true :a-flush true)
+       (add-hand-info hand :straight-flush)))
+
+(defn- is-four-of-a-kind [hand]
+  (and (= 1 (count (filter-by-size (:cards hand) 4)))
+       (add-hand-info hand :four-of-a-kink)))
+
+(defn- is-full-house [hand]
+  (and (= 1 (count (filter-by-size (:cards hand) 3)))
+       (= 1 (count (filter-by-size (:cards hand) 2)))
+       (add-hand-info hand :full-house)))
+    
+(defn- is-flush [hand]
+  (and (are-single-groups hand :a-straight false :a-flush true)
+       (add-hand-info hand :flush)))
+
+(defn- is-straight [hand]
+  (and (are-single-groups hand :a-straight true :a-flush false)
+       (add-hand-info hand :straight)))
+
+(defn- is-three-of-a-kind [hand]
+  (and (= 1 (count (filter-by-size (:cards hand) 3))) 
+       (= 2 (count (filter-by-size (:cards hand) 1)))
+       (add-hand-info hand :three-of-a-kind)))
+
+(defn- is-two-pair [hand]
+  (and (= 2 (count (filter-by-size (:cards hand) 2)))
+       (add-hand-info hand :two-pair)))
+
+(defn- is-one-pair [hand]
+  (and (= 1 (count (filter-by-size (:cards hand) 2))) 
+       (= 3 (count (filter-by-size (:cards hand) 1)))
+       (add-hand-info hand :one-pair)))
+
+(defn- is-high-card [hand] 
+  (and (are-single-groups hand :a-sraight false :a-flush false)
+       (add-hand-info hand :high-card)))
 
 (defn- when-no-rank [hand rank-fn]
   (let [{:keys [rank], :or {rank nil}} hand]
@@ -22,32 +98,26 @@
              (rank-fn hand))
         hand)))
 
-(defn- a-straight [c]
-  (let [ranks (map :rank c)]
-    (every? true? (map #(= (- %1 %2) 1) (rest ranks) ranks))))
+(defn- rank [h]
+  (-> (order-by-hand h)
+      (when-no-rank is-straight-flush)
+      (when-no-rank is-four-of-a-kind)
+      (when-no-rank is-full-house)
+      (when-no-rank is-flush)
+      (when-no-rank is-straight)
+      (when-no-rank is-three-of-a-kind)
+      (when-no-rank is-two-pair)
+      (when-no-rank is-one-pair)
+      (when-no-rank is-high-card)))
 
-(defn- a-flush [c]
-  (let [suits (map :suit c)]
-   (every? true? (map #(= (first suits) %) suits)))) 
-    
-(defn- is-straight-flush [h] 
-  (and (a-straight (h :cards)) 
-       (a-flush (h :cards))
-       (into h (hand-info :straight-flush
-                          (h :cards)
-                          nil))))
-
-(defn- is-straight [h]
-  (and (a-straight (h :cards)) 
-       (into h (hand-info :straight
-                          (h :cards)
-                          nil))))
 
 (defn rank-hand [h]
-  (-> 
-    (assoc-in h [:cards] (sort-by #(% :rank) (h :cards)))
-    (when-no-rank is-straight-flush)
-    (when-no-rank is-straight)))
+  (let [ranked (rank h)]
+    (assoc-in ranked [:cards] 
+              (apply concat 
+                     (map :cards 
+                          (:cards ranked))))))
+
 
 (defn winning-hand [hands]
   (first (sort #(if (= (%1 :rank) (%2 :rank))
