@@ -26,7 +26,7 @@
 (defn- order-by-size-then-rank [groups]
   (sort #(or (and (= (:size %1) (:size %2))
                   (compare (:rank %1) (:rank %2)))
-             (* (compare (:size %1) (:size %2)) -1))
+             (compare (:size %2) (:size %1)))
         groups))
 
 (defn- order-by-hand [hand]
