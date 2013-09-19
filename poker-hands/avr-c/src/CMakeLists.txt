@@ -1,4 +1,6 @@
-add_avr_executable(
-    poker_hands
-    five_card_draw.c
-)
+
+SUBDIRLIST(SUBDIRS ${CMAKE_CURRENT_LIST_DIR})
+
+FOREACH(subdir ${SUBDIRS})
+    add_subdirectory( ${subdir} )
+ENDFOREACH()

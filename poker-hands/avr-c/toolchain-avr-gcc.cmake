@@ -7,6 +7,8 @@ set(CMAKE_SYSTEM_NAME generic)
 set(CMAKE_C_COMPILER   ${AVR_CC})
 set(CMAKE_CXX_COMPILER ${AVR_CXX})
 
+SET(CMAKE_COLOR_MAKEFILE ON)
+
 # XXX better use a seperate file for non toolchain stuff?
 find_program(AVRDUDE avrdude)
 
@@ -47,13 +49,13 @@ function(_avr_get_mcu_list NAME OUTVAR)
     set(${OUTVAR} ${${mcu_type_var}} PARENT_SCOPE)
 endfunction(_avr_get_mcu_list)
 
-function(add_avr_executable EXECUTABLE_NAME)
+function(add_avr_executable EXECUTABLE_NAME SOURCE_LIST)
     _avr_get_mcu_list(${EXECUTABLE_NAME} target_mcus)
     foreach(mcu ${target_mcus})
         set(elf_file ${EXECUTABLE_NAME}-${mcu}.elf)
         set(hex_file ${EXECUTABLE_NAME}-${mcu}.hex)
         set(map_file ${EXECUTABLE_NAME}-${mcu}.map)
-        add_executable(${elf_file} EXCLUDE_FROM_ALL ${ARGN})
+        add_executable(${elf_file} EXCLUDE_FROM_ALL ${SOURCE_LIST})
         set(common_opts "-mmcu=${mcu} -fshort-enums -fpack-struct")
         set_target_properties( 
             ${elf_file}
@@ -132,3 +134,13 @@ function(add_avr_library LIBRARY_NAME)
     endforeach(mcu ${target_mcus})
 endfunction(add_avr_library)
 
+macro(SUBDIRLIST result curdir)
+    fiLe(GLOB children RELATIVE ${curdir} ${curdir}/*)
+    set(dirlist "")
+    foreach(child ${children})
+        if(IS_DIRECTORY ${curdir}/${child})
+            set(dirlist ${dirlist} ${child})
+        endif()
+    endforeach()
+    set(${result} ${dirlist})
+endmacrO()
