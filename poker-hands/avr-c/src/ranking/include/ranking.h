@@ -5,6 +5,7 @@
 
 #define BaudRate 9600
 #define MYUBRR (F_CPU / 16 / BaudRate) - 1
+#define GROUP_CARD_SIZE 4
 
 typedef struct {
     byte rank;
@@ -15,7 +16,7 @@ typedef struct {
 typedef struct {
     byte     size;
     byte     rank;
-    Card     cards[4];
+    Card     cards[GROUP_CARD_SIZE];
 } Group; 
 
 void add_to_group(Card current, byte pos);

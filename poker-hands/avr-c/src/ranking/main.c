@@ -1,15 +1,20 @@
 #include "ranking.h"
+#define GROUP_SIZE 7
 
-Group groups[7];
+Group groups[GROUP_SIZE];
+
 
 int main(void) {
     // init groups with negate one, which indicates empty.
-    for (byte i = 0; i < 7; i++) {
-        groups[i] = (Group) { .rank = -1, 
-                              .size = -1, 
-                              .cards = (Card) { .rank = -1,
-                                                .suit = -1,
-                                                .wild = -1 } };
+    for (byte i = 0; i < GROUP_SIZE; i++) {
+        Group g = { .rank = -1, 
+                    .size = -1 };
+        for (byte ig = 0; ig < GROUP_CARD_SIZE; ig++) {
+            g.cards[ig] = (Card) { .rank = -1,
+                                   .suit = -1,
+                                   .wild = -1 };
+        }
+        groups[i] = g;
     } 
 
     // set up ports for status lights.
@@ -31,9 +36,9 @@ int main(void) {
     PORTB ^= _BV(0); 
 
     byte card_count = 0;
-    byte buf[7];
+    byte buf[GROUP_SIZE];
     for (;;) {
-        for (byte i = 0; i < 7; i++) buf[i] = 0;
+        for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = 0;
         if (serialCheckRxComplete() && card_count < 7) {
             buf[card_count] = serialRead();
             card_count++;
@@ -58,7 +63,7 @@ void read_card(byte raw_card) {
 }
 
 byte card_in_group(Card *current) {
-    for (byte i = 0; i < 7; i++) {
+    for (byte i = 0; i < GROUP_SIZE; i++) {
         if (groups[i].rank < 0) continue;
         if (current->rank == groups[i].rank)
             return i;
@@ -76,14 +81,14 @@ void insert_into_groups(Card current) {
     // find first available slot. 
     // the rank field was chosen here to indicate empty.
     // A negative one or any value less than zero is considered empty.
-    for (byte i = 0; i < 7; i++) {
+    for (byte i = 0; i < GROUP_SIZE; i++) {
         if (groups[i].rank < 0) continue;
         groups[i] = grp; 
     }
 }
 
 void add_to_group(Card current, byte pos) {
-    for (byte i = 0; i < 4; i++) {
+    for (byte i = 0; i < GROUP_CARD_SIZE; i++) {
         if (groups[pos].cards[i].rank < 0) continue;
         groups[pos].cards[i] = current;
         return;
