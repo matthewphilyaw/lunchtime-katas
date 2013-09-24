@@ -1,17 +1,18 @@
 #ifndef HAND_INCLUDE
 #define HAND_INCLUDE
 
+#include "common.h"
+
 typedef struct {
-    char     face;
-    char     suit; 
-    char     rank;
+    byte     face;
+    byte     suit; 
+    byte     rank;
 } Card;
 
 typedef struct {
-    char    player_name[35];
+    byte    player_name[35];
     Card    cards[7];
-    char    rank;
-    int     score;    
+    byte    rank;
 } Hand;
 
 #endif

@@ -7,7 +7,7 @@ set(CMAKE_SYSTEM_NAME generic)
 set(CMAKE_C_COMPILER   ${AVR_CC})
 set(CMAKE_CXX_COMPILER ${AVR_CXX})
 
-SET(CMAKE_COLOR_MAKEFILE ON)
+#SET(CMAKE_COLOR_MAKEFILE ON)
 
 # XXX better use a seperate file for non toolchain stuff?
 find_program(AVRDUDE avrdude)
@@ -56,7 +56,7 @@ function(add_avr_executable EXECUTABLE_NAME SOURCE_LIST)
         set(hex_file ${EXECUTABLE_NAME}-${mcu}.hex)
         set(map_file ${EXECUTABLE_NAME}-${mcu}.map)
         add_executable(${elf_file} EXCLUDE_FROM_ALL ${SOURCE_LIST})
-        set(common_opts "-mmcu=${mcu} -fshort-enums -fpack-struct")
+        set(common_opts "-mmcu=${mcu} -fshort-enums -fpack-struct -std=gnu99")
         set_target_properties( 
             ${elf_file}
             PROPERTIES
@@ -69,7 +69,7 @@ function(add_avr_executable EXECUTABLE_NAME SOURCE_LIST)
             COMMAND
                 ${AVR_OBJCOPY} -j .text -j .data -O ihex ${elf_file} ${hex_file}
             COMMAND
-                ${AVR_SIZE_TOOL} ${elf_file}
+                ${AVR_SIZE_TOOL} -C ${elf_file}
             DEPENDS ${elf_file}
         )
         list(APPEND all_hex_files ${hex_file})
