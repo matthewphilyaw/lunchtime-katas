@@ -1,8 +1,5 @@
-#include <avr/io.h>
-#include <util/delay.h>
-
+#include "poker.h"
 #include "hand.h"
-#include "common.h"
 
 static Hand *current; 
                       

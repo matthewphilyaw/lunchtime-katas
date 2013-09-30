@@ -1,4 +1,4 @@
-#include "common.h"
+#include "poker.h"
 #include "hand.h"
 
 static Hand *current; 

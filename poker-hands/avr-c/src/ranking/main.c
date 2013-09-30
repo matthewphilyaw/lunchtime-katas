@@ -1,11 +1,67 @@
 #include "ranking.h"
+
 #define GROUP_SIZE 7
+#define LED _BV(0)
+#define OK write_buf(ok)
+#define RDY write_buf(rdy)
+#define WT write_buf(wt)
+
+byte ok[3] = "ok\0";
+byte rdy[4] = "rdy\0";
+byte wt[3] = "wt\0";
 
 Group groups[GROUP_SIZE];
 
-
 int main(void) {
-    // init groups with negate one, which indicates empty.
+    // set up ports for status lights.
+    DDRB = 0xff;
+    DDRD = _BV(1);
+
+    // turn on a status light 
+    // will go off when serial com is setup
+    PORTB = LED;
+
+    // start serial 
+    UBRRH = (byte) (MYUBRR >> 8);
+    UBRRL = (byte) MYUBRR;
+    UCSRB = (1 << RXEN) | (1 << TXEN);
+    UCSRC = 3 << UCSZ0;
+
+    // toggle light off - serial setup. Will say hello shortly
+    PORTB ^= LED; 
+    
+    byte card_count = 0;
+    byte buf[GROUP_SIZE];
+    for (;;) {
+        // reset groups - do this each time. Want a clean slate.
+        reset_groups();
+
+        // reset buffer to zero, don't want junk data.
+        for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = 0;
+
+        RDY; // tell who ever is listening that the ranker 4000 is ready
+
+        // fill buffer.
+        while (card_count < 7) {
+            buf[card_count] = serialRead();
+            card_count++;
+        }
+
+        WT; // ranker 4000 is processing.
+
+        // this is where read_card will go, and then following ranking
+        // methods.
+        for (byte i = 0; i < GROUP_SIZE; i++) serialWrite(buf[i]);
+        serialWrite('\r');
+        serialWrite('\n');
+
+        OK; // ranker 4000 has finished, and output has been sent back
+
+        card_count = 0;
+    }
+}
+
+void reset_groups() {
     for (byte i = 0; i < GROUP_SIZE; i++) {
         Group g = { .rank = -1, 
                     .size = -1 };
@@ -16,35 +72,12 @@ int main(void) {
         }
         groups[i] = g;
     } 
+}
 
-    // set up ports for status lights.
-    DDRB = 0xff;
-    DDRD = _BV(1);
-
-    // turn on a status light 
-    // will go off when serial com is setup
-    PORTB = _BV(0);
-
-    // start serial 
-    UBRRH = (byte) (MYUBRR >> 8);
-    UBRRL = (byte) MYUBRR;
-    UCSRB = (1 << RXEN) | (1 << TXEN);
-    UCSRC = 3 << UCSZ0;
-
-    establishContact();
-
-    PORTB ^= _BV(0); 
-
-    byte card_count = 0;
-    byte buf[GROUP_SIZE];
-    for (;;) {
-        for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = 0;
-        if (serialCheckRxComplete() && card_count < 7) {
-            buf[card_count] = serialRead();
-            card_count++;
-        }
-        PORTB ^= _BV(0);
-    }
+void write_buf(byte *buf) {
+    for (byte *b = buf; *b != '\0'; b++) serialWrite(*b);
+    serialWrite('\r'); 
+    serialWrite('\n'); 
 }
 
 void read_card(byte raw_card) {
@@ -95,47 +128,14 @@ void add_to_group(Card current, byte pos) {
     } 
 }
 
-void sort_groups() {
-
-}
-
-void delayLong() {
-	unsigned int delayvar;
-	delayvar = 0; 
-	while (delayvar <=  65500U)		
-	{ 
-		__asm("nop");  
-		delayvar++;
-	} 
-}
-
-byte serialCheckRxComplete() {
-	return(UCSRA & _BV(RXC));		
-}
-
-byte serialCheckTxReady() {
-	return(UCSRA & _BV(UDRE));
-}
-
 byte serialRead() {
-	while (serialCheckRxComplete() == 0) {;;} 
+    // wait till RxComplete
+	while (UCSRA & _BV(RXC) == 0) {;;} 
 	return UDR;
 }
 
 void serialWrite(byte DataOut) {
-	while (serialCheckTxReady() == 0) {;;} 
+    // wait till TxReady
+	while (UCSRA & _BV(UDRE) == 0) {;;} 
 	UDR = DataOut;
-}
-
-void establishContact() {
-	while (serialCheckRxComplete() == 0) { 
-		serialWrite('A'); 
-		delayLong();
-		delayLong();
-		delayLong();
-		delayLong();
-		delayLong();
-		delayLong();
-		delayLong();
-	}
 }

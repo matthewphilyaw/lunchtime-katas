@@ -1,7 +1,7 @@
 #ifndef HAND_INCLUDE
 #define HAND_INCLUDE
 
-#include "common.h"
+#include "poker.h"
 
 typedef struct {
     byte     face;
