@@ -130,12 +130,12 @@ void add_to_group(Card current, byte pos) {
 
 byte serialRead() {
     // wait till RxComplete
-	while (UCSRA & _BV(RXC) == 0) {;;} 
-	return UDR;
+    while (UCSRA & _BV(RXC) == 0) {;;} 
+    return UDR;
 }
 
 void serialWrite(byte DataOut) {
     // wait till TxReady
-	while (UCSRA & _BV(UDRE) == 0) {;;} 
-	UDR = DataOut;
+    while (UCSRA & _BV(UDRE) == 0) {;;} 
+    UDR = DataOut;
 }
