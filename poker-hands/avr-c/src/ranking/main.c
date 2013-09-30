@@ -1,14 +1,4 @@
-#include "ranking.h"
-
-#define GROUP_SIZE 7
-#define LED _BV(0)
-#define OK write_buf((byte *)"ok\0")
-#define RDY write_buf((byte *)"rdy\0")
-#define WT write_buf((byte *)"wt\0")
-
-#define rank(c) (c & 0x0f)
-#define suit(c) ((c & 0x70) >> 4)
-#define wild(c) ((c & 0x80) >> 7)
+#include "ranking/ranking.h"
 
 Group groups[GROUP_SIZE];
 
@@ -118,12 +108,12 @@ void add_to_group(byte *card, byte pos) {
 
 byte serialRead() {
     // wait till RxComplete
-    while (UCSRA & _BV(RXC) == 0) {;;} 
+    while ((UCSRA & _BV(RXC)) == 0) {;;} 
     return UDR;
 }
 
 void serialWrite(byte DataOut) {
     // wait till TxReady
-    while (UCSRA & _BV(UDRE) == 0) {;;} 
+    while ((UCSRA & _BV(UDRE)) == 0) {;;} 
     UDR = DataOut;
 }
