@@ -2,13 +2,13 @@
 
 #define GROUP_SIZE 7
 #define LED _BV(0)
-#define OK write_buf(ok)
-#define RDY write_buf(rdy)
-#define WT write_buf(wt)
+#define OK write_buf((byte *)"ok\0")
+#define RDY write_buf((byte *)"rdy\0")
+#define WT write_buf((byte *)"wt\0")
 
-byte ok[3] = "ok\0";
-byte rdy[4] = "rdy\0";
-byte wt[3] = "wt\0";
+#define rank(c) (c & 0x0f)
+#define suit(c) ((c & 0x70) >> 4)
+#define wild(c) ((c & 0x80) >> 7)
 
 Group groups[GROUP_SIZE];
 
@@ -22,7 +22,7 @@ int main(void) {
     PORTB = LED;
 
     // start serial 
-    UBRRH = (byte) (MYUBRR >> 8);
+    UBRRH = (byte) ((MYUBRR) >> 8);
     UBRRL = (byte) MYUBRR;
     UCSRB = (1 << RXEN) | (1 << TXEN);
     UCSRC = 3 << UCSZ0;
@@ -63,14 +63,9 @@ int main(void) {
 
 void reset_groups() {
     for (byte i = 0; i < GROUP_SIZE; i++) {
-        Group g = { .rank = -1, 
-                    .size = -1 };
-        for (byte ig = 0; ig < GROUP_CARD_SIZE; ig++) {
-            g.cards[ig] = (Card) { .rank = -1,
-                                   .suit = -1,
-                                   .wild = -1 };
-        }
-        groups[i] = g;
+        groups[i] = (Group ) { .rank = 0, 
+                               .size = 0,
+                               .cards = { 0, 0, 0, 0 } };
     } 
 }
 
@@ -80,12 +75,8 @@ void write_buf(byte *buf) {
     serialWrite('\n'); 
 }
 
-void read_card(byte raw_card) {
-    Card card = { .rank = raw_card & 0x0f,
-                  .suit = (raw_card & 0x70) >> 4,
-                  .wild = (raw_card & 0x80) >> 7 };
-
-    byte pos = card_in_group(&card);
+void read_card(byte *card) {
+    byte pos = card_in_group(card);
 
     if (pos >= 0) {
         add_to_group(card, pos);
@@ -95,47 +86,44 @@ void read_card(byte raw_card) {
     insert_into_groups(card);
 }
 
-byte card_in_group(Card *current) {
+byte card_in_group(byte *card) {
     for (byte i = 0; i < GROUP_SIZE; i++) {
-        if (groups[i].rank < 0) continue;
-        if (current->rank == groups[i].rank)
+        if (groups[i].rank == 0) continue;
+        if (rank(*card) == groups[i].rank)
             return i;
     }
     // negative number indicates not found
     return -1;
 }
 
-void insert_into_groups(Card current) {
-    // we don't have a group, we need to make one.
-    Group grp = { .rank = current.rank,
-                  .cards[0] = current,
-                  .size = 1 };
-    
-    // find first available slot. 
-    // the rank field was chosen here to indicate empty.
-    // A negative one or any value less than zero is considered empty.
+void insert_into_groups(byte *card) {
+    // find first empty group. 
+    // zero on the rank indicates empty. 
     for (byte i = 0; i < GROUP_SIZE; i++) {
-        if (groups[i].rank < 0) continue;
-        groups[i] = grp; 
+        if (groups[i].rank > 0) continue;
+
+        groups[i] = (Group) { .rank = rank(*card),
+                              .cards[0] = *card,
+                              .size = 1 };
     }
 }
 
-void add_to_group(Card current, byte pos) {
+void add_to_group(byte *card, byte pos) {
     for (byte i = 0; i < GROUP_CARD_SIZE; i++) {
-        if (groups[pos].cards[i].rank < 0) continue;
-        groups[pos].cards[i] = current;
+        if (groups[pos].cards > 0) continue;
+        groups[pos].cards[i] = *card;
         return;
     } 
 }
 
 byte serialRead() {
     // wait till RxComplete
-	while (UCSRA & _BV(RXC) == 0) {;;} 
+	while ((UCSRA & _BV(RXC)) == 0) {;;} 
 	return UDR;
 }
 
 void serialWrite(byte DataOut) {
     // wait till TxReady
-	while (UCSRA & _BV(UDRE) == 0) {;;} 
+	while ((UCSRA & _BV(UDRE)) == 0) {;;} 
 	UDR = DataOut;
 }

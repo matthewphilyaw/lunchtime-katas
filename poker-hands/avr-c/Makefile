@@ -3,7 +3,7 @@
 all: build 
 
 build:
-	(cd build; make)
+	(cd build; make --no-print-directory)
 
 rebuild: destroy init all
 
