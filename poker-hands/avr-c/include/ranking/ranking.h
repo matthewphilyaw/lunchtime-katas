@@ -9,9 +9,9 @@
 
 #define GROUP_SIZE 7
 #define LED _BV(0)
-#define OK write_buf((byte *)"ok\0")
-#define RDY write_buf((byte *)"rdy\0")
-#define WT write_buf((byte *)"wt\0")
+#define OK write_buf_newline((byte *)"ok\0")
+#define RDY write_buf_newline((byte *)"rdy\0")
+#define WT write_buf_newline((byte *)"wt\0")
 
 #define rank(c) (c & 0x0f)
 #define suit(c) ((c & 0x70) >> 4)
@@ -23,16 +23,20 @@ typedef struct {
     byte     cards[GROUP_CARD_SIZE];
 } Group; 
 
+byte seq();
+byte same_suit();
+void rank_hand();
 void reset_groups();
-void write_newline();
 void write_buf(byte *buf);
+void write_buf_newline(byte *buf);
 void add_to_group(byte *card, byte pos);
 byte card_in_group(byte *card);
 void insert_into_groups(byte *card);
 void read_card(byte *card);
+void send_groups();
 
 // Serial
-byte serialRead(); 
-void serialWrite(byte DataOut);
+byte serial_read(); 
+void serial_write(byte DataOut);
 
 #endif

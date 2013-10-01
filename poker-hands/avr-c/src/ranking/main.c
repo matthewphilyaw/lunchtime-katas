@@ -1,6 +1,6 @@
 #include "ranking/ranking.h"
 
-Group groups[GROUP_SIZE];
+static Group groups[GROUP_SIZE];
 
 int main(void) {
     // set up ports for status lights.
@@ -33,7 +33,7 @@ int main(void) {
 
         // fill buffer.
         while (card_count < 7) {
-            buf[card_count] = serialRead();
+            buf[card_count] = serial_read();
             card_count++;
         }
 
@@ -41,9 +41,9 @@ int main(void) {
 
         // this is where read_card will go, and then following ranking
         // methods.
-        for (byte i = 0; i < GROUP_SIZE; i++) serialWrite(buf[i]);
-        serialWrite('\r');
-        serialWrite('\n');
+        for (byte i = 0; i < GROUP_SIZE; i++) serial_write(buf[i]);
+        serial_write('\r');
+        serial_write('\n');
 
         OK; // ranker 4000 has finished, and output has been sent back
 
@@ -60,9 +60,13 @@ void reset_groups() {
 }
 
 void write_buf(byte *buf) {
-    for (byte *b = buf; *b != '\0'; b++) serialWrite(*b);
-    serialWrite('\r'); 
-    serialWrite('\n'); 
+    for (byte *b = buf; *b != '\0'; b++) serial_write(*b);
+}
+
+void write_buf_newline(byte *buf) {
+    write_buf(buf);
+    serial_write('\r'); 
+    serial_write('\n'); 
 }
 
 void read_card(byte *card) {
@@ -106,14 +110,74 @@ void add_to_group(byte *card, byte pos) {
     } 
 }
 
-byte serialRead() {
+void rank_hand() {
+    byte fours, threes, twos, singles = 0;
+
+    for (byte i = 0; i < GROUP_SIZE; i++) {
+        switch (groups[i].size) {
+            case 4:
+                fours++;
+                break;
+            case 3:
+                threes++;
+                break;
+            case 2:
+                twos++;
+                break;
+            case 1:
+                singles++;
+                break;
+            default:
+                continue;
+        }
+    }
+
+    if (fours ==1) {} // four of a kind;
+    if (threes == 1 && twos == 0) {} // three of a kind;
+    if (threes == 1 && twos  == 1) {} // full house;
+    if (twos == 2) {} // two pair;
+    if (twos == 1 && singles == 3) {} // pair;
+    if (singles == 5) {
+        if (seq() && same_suit()) {} // straight flush;
+        if (seq() && !same_suit()) {} // straight;
+        if (!seq() && same_suit()) {} // flush;
+    }
+}
+
+byte seq() { return 1; }
+byte same_suit() { return 1; }
+
+byte serial_read() {
     // wait till RxComplete
     while ((UCSRA & _BV(RXC)) == 0) {;;} 
     return UDR;
 }
 
-void serialWrite(byte DataOut) {
+void serial_write(byte DataOut) {
     // wait till TxReady
     while ((UCSRA & _BV(UDRE)) == 0) {;;} 
     UDR = DataOut;
+}
+
+void send_groups() {
+    byte *comma = (byte *) ",\0";
+    
+    write_buf((byte *) "[\0");
+    for (byte i = 0; i < GROUP_SIZE; i++) {
+        write_buf((byte *) "{\0");
+        serial_write(groups[i].rank);
+        write_buf(comma);
+        serial_write(groups[i].size);
+        write_buf(comma);
+        write_buf((byte *) "[\0");
+        for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
+            write_buf((byte *) "{\0");
+            serial_write(groups[i].cards[j]);
+            if ((j + 1) < GROUP_CARD_SIZE) write_buf(comma);
+        }
+        write_buf((byte *) "]\0");
+        write_buf((byte *) "}\0");
+        if ((i + 1) < GROUP_SIZE) write_buf(comma);
+        write_buf((byte *) "]\0");
+    }
 }
