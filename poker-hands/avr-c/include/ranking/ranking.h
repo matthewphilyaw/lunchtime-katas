@@ -7,7 +7,7 @@
 #define MYUBRR (F_CPU / 16 / BaudRate) - 1
 #define GROUP_CARD_SIZE 4
 
-#define GROUP_SIZE 7
+#define GROUP_SIZE 5
 #define LED _BV(0)
 #define OK write_buf_newline((byte *)"ok\0")
 #define RDY write_buf_newline((byte *)"rdy\0")
@@ -25,6 +25,7 @@ typedef struct {
 
 byte seq();
 byte same_suit();
+byte ace_low_straight();
 void rank_hand();
 void reset_groups();
 void write_buf(byte *buf);

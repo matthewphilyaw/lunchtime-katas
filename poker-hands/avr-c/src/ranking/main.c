@@ -1,8 +1,8 @@
 #include "ranking/ranking.h"
 
-static Group groups[GROUP_SIZE];
+Group groups[GROUP_SIZE];
 
-int main(void) {
+void main() {
     // set up ports for status lights.
     DDRB = 0xff;
     DDRD = _BV(1);
@@ -91,6 +91,8 @@ byte card_in_group(byte *card) {
 }
 
 void insert_into_groups(byte *card) {
+    // during insertion sort
+    // keep best 5 cards.
     // find first empty group. 
     // zero on the rank indicates empty. 
     for (byte i = 0; i < GROUP_SIZE; i++) {
@@ -106,6 +108,7 @@ void add_to_group(byte *card, byte pos) {
     for (byte i = 0; i < GROUP_CARD_SIZE; i++) {
         if (groups[pos].cards > 0) continue;
         groups[pos].cards[i] = *card;
+        groups[pos].size++;
         return;
     } 
 }
@@ -140,12 +143,51 @@ void rank_hand() {
     if (singles == 5) {
         if (seq() && same_suit()) {} // straight flush;
         if (seq() && !same_suit()) {} // straight;
+        if (ace_low_straight()) {}
         if (!seq() && same_suit()) {} // flush;
     }
 }
 
-byte seq() { return 1; }
-byte same_suit() { return 1; }
+// given that at this point we have ruled out any duplicates by checking
+// for a pair, two pair, three of a kind, four of a kind and a full-house
+// and we have sorted by rank highest to lowest the following should be true:
+//
+// if the first card minus the last card is four then the cards in between
+// have no other choice but to be in order and sequential.
+
+byte seq() { 
+    if (groups[0].rank - groups[GROUP_SIZE - 1].rank == 4) return 1;
+    return 0; 
+}
+
+// an exception to the normal flow
+// in that an ace can either be a high card or a low card
+// which only effects the straight essentially.
+byte ace_low_straight() {
+    if (groups[0].rank == 14 && 
+        groups[GROUP_SIZE - 1].rank == 2 &&
+        groups[1].rank == 5) {
+
+        Group grp = groups[0]; 
+        for (byte i = 1; i < GROUP_SIZE; i++) {
+            groups[i - 1] = groups[i];
+        }
+        groups[GROUP_SIZE] = grp;
+
+        return 1;
+    }
+
+    return 0;
+}
+
+byte same_suit() { 
+    // take the first rank, and compare it to all the others
+    // they should all match, otherwise return false
+    for (byte i = 1; i < GROUP_SIZE; i++) {
+        if (suit(groups[0].cards[0]) != suit(groups[i].cards[0])) return 0;
+    }
+    return 1; 
+}
 
 byte serial_read() {
     // wait till RxComplete
