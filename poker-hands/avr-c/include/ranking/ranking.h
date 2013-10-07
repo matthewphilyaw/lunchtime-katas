@@ -26,7 +26,7 @@ typedef struct {
 byte seq();
 byte same_suit();
 byte ace_low_straight();
-void rank_hand();
+HAND rank_hand();
 void reset_groups();
 void write_buf(byte *buf);
 void write_buf_newline(byte *buf);

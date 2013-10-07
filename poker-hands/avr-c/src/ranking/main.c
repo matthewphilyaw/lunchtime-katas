@@ -2,7 +2,7 @@
 
 Group groups[GROUP_SIZE];
 
-void main() {
+int main(void) {
     // set up ports for status lights.
     DDRB = 0xff;
     DDRD = _BV(1);
@@ -41,7 +41,12 @@ void main() {
 
         // this is where read_card will go, and then following ranking
         // methods.
-        for (byte i = 0; i < GROUP_SIZE; i++) serial_write(buf[i]);
+        for (byte i = 0; i < GROUP_SIZE; i++) {
+            read_card(&buf[i]);
+        }
+
+        HAND h = rank_hand();
+        serial_write((byte)h);
         serial_write('\r');
         serial_write('\n');
 
@@ -113,8 +118,9 @@ void add_to_group(byte *card, byte pos) {
     } 
 }
 
-void rank_hand() {
-    byte fours, threes, twos, singles = 0;
+HAND rank_hand() {
+    byte fours, threes, twos, singles;
+    fours = threes = twos = singles = 0;
 
     for (byte i = 0; i < GROUP_SIZE; i++) {
         switch (groups[i].size) {
@@ -135,17 +141,22 @@ void rank_hand() {
         }
     }
 
-    if (fours ==1) {} // four of a kind;
-    if (threes == 1 && twos == 0) {} // three of a kind;
-    if (threes == 1 && twos  == 1) {} // full house;
-    if (twos == 2) {} // two pair;
-    if (twos == 1 && singles == 3) {} // pair;
+    if (fours ==1) { return four_of_a_kind; }
+    if (threes == 1 && twos == 0) { return three_of_a_kind; }
+    if (threes == 1 && twos  == 1) { return full_house; }
+    if (twos == 2) { return two_pair; }
+    if (twos == 1 && singles == 3) { return pair; }
     if (singles == 5) {
-        if (seq() && same_suit()) {} // straight flush;
-        if (seq() && !same_suit()) {} // straight;
-        if (ace_low_straight()) {}
-        if (!seq() && same_suit()) {} // flush;
+        if ((seq() || ace_low_straight()) && same_suit()) { 
+            return straight_flush; 
+        }
+        if ((seq() || ace_low_straight()) && !same_suit()) { 
+            return straight;
+        }
+        if (!seq() && same_suit()) { return flush; }
     }
+
+    return none;
 }
 
 // given that at this point we have ruled out any duplicates by checking
@@ -172,7 +183,7 @@ byte ace_low_straight() {
         for (byte i = 1; i < GROUP_SIZE; i++) {
             groups[i - 1] = groups[i];
         }
-        groups[GROUP_SIZE] = grp;
+        groups[GROUP_SIZE - 1] = grp;
 
         return 1;
     }
