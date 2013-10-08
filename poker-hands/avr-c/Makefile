@@ -13,6 +13,10 @@ clean:
 destroy:
 	rm -rf build
 
-init:
+init: destroy
 	mkdir -p build
 	(cd build; cmake -DCMAKE_TOOLCHAIN_FILE=../toolchain-avr-gcc.cmake ..)
+
+initd: destroy 
+	mkdir -p build
+	(cd build; cmake -DDEBUG_MODE=ON -DCMAKE_TOOLCHAIN_FILE=../toolchain-avr-gcc.cmake ..)
