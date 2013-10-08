@@ -11,7 +11,7 @@
 #define WT write_buf_newline((byte *)"wt\0")
 
 #define rank(c) (c & 0x0f)
-#define suit(c) ((c & 0x70) >> 4)
+#define suit(c) ((c & 0x30) >> 4)
 #define wild(c) ((c & 0x80) >> 7)
 
 typedef struct {
