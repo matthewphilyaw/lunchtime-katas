@@ -198,14 +198,6 @@ void send_groups() {
 }
 #endif
 
-void reset_groups() {
-    for (byte i = 0; i < GROUP_SIZE; i++) {
-        groups[i] = (Group ) { .rank = 0, 
-                               .size = 0,
-                               .cards = { 0, 0, 0, 0 } };
-    } 
-}
-
 int main(void) {
     // set up ports for status lights.
     DDRB = 0xff;
@@ -228,7 +220,11 @@ int main(void) {
     byte buf[GROUP_SIZE];
     for (;;) {
         // reset groups - do this each time. Want a clean slate.
-        reset_groups();
+        for (byte i = 0; i < GROUP_SIZE; i++) {
+            groups[i] = (Group ) { .rank = 0, 
+                                   .size = 0,
+                                   .cards = { 0, 0, 0, 0 } };
+        } 
 
         // reset buffer to zero, don't want junk data.
         for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = 0;
