@@ -45,26 +45,44 @@ void write_buf_newline(byte *buf) {
 }
 
 void insert_into_groups(byte *card) {
-    // during insertion sort
-    // keep best 5 cards.
-    // find first empty group. 
-    // zero on the rank indicates empty. 
     for (byte i = 0; i < GROUP_SIZE; i++) {
         if (groups[i].rank > 0) continue;
 
-        groups[i] = (Group) { .rank = rank(*card),
-                              .cards[0] = *card,
-                              .size = 1 };
+        groups[i].rank = rank(*card);
+        groups[i].cards[0] = *card;
+        groups[i].size = 1;
     }
 }
 
 void add_to_group(byte *card, byte pos) {
     for (byte i = 0; i < GROUP_CARD_SIZE; i++) {
         if (groups[pos].cards > 0) continue;
+
         groups[pos].cards[i] = *card;
         groups[pos].size++;
         return;
     } 
+}
+
+byte keep_shifting(Group *a, Group *b) {
+    if (a->size == b->size && a->rank < b->rank) return 1;
+    if (a->size < b->size) return 1;
+
+    return 0;
+}
+
+void sort_group() {
+    byte j;
+    Group tmp;
+    for (byte i = 1; i < GROUP_SIZE; i++) {
+        tmp = groups[i];
+        j = i;
+        while (j > 0 && keep_shifting(&groups[j - 1], &tmp)) {
+           groups[j] = groups[j - 1]; 
+           j--;
+        }
+        groups[j] = tmp;
+    }
 }
 
 // given that at this point we have ruled out any duplicates by checking
@@ -221,9 +239,9 @@ int main(void) {
     for (;;) {
         // reset groups - do this each time. Want a clean slate.
         for (byte i = 0; i < GROUP_SIZE; i++) {
-            groups[i] = (Group ) { .rank = 0, 
+            groups[i] = (Group ) { .rank = 0,
                                    .size = 0,
-                                   .cards = { 0, 0, 0, 0 } };
+                                   .cards = {0, 0, 0, 0 } };
         } 
 
         // reset buffer to zero, don't want junk data.
