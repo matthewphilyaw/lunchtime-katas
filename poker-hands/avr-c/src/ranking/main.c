@@ -51,12 +51,13 @@ void insert_into_groups(byte *card) {
         groups[i].rank = rank(*card);
         groups[i].cards[0] = *card;
         groups[i].size = 1;
+        return;
     }
 }
 
 void add_to_group(byte *card, byte pos) {
     for (byte i = 0; i < GROUP_CARD_SIZE; i++) {
-        if (groups[pos].cards > 0) continue;
+        if (groups[pos].cards[i] > 0) continue;
 
         groups[pos].cards[i] = *card;
         groups[pos].size++;
@@ -64,6 +65,22 @@ void add_to_group(byte *card, byte pos) {
     } 
 }
 
+char card_in_group(byte *card) {
+    for (byte i = 0; i < GROUP_SIZE; i++) {
+        if (groups[i].rank == 0) continue;
+        if (rank(*card) == groups[i].rank)
+            return i;
+    }
+    // negative number indicates not found
+    return -1;
+}
+
+// if a.size is less than b.size, then b needs to go to the left
+// this is usually the otherway around, but I want higher cards to
+// go to the left
+//
+// if the sizes match then if the a.rank is less than b.rank b again
+// needs to got to the left.
 byte keep_shifting(Group *a, Group *b) {
     if (a->size == b->size && a->rank < b->rank) return 1;
     if (a->size < b->size) return 1;
@@ -71,7 +88,8 @@ byte keep_shifting(Group *a, Group *b) {
     return 0;
 }
 
-void sort_group() {
+// insertion sort. Higher group sizes or cards will be first.
+void sort_groups() {
     byte j;
     Group tmp;
     for (byte i = 1; i < GROUP_SIZE; i++) {
@@ -126,18 +144,9 @@ byte is_same_suit() {
     return 1; 
 }
 
-byte card_in_group(byte *card) {
-    for (byte i = 0; i < GROUP_SIZE; i++) {
-        if (groups[i].rank == 0) continue;
-        if (rank(*card) == groups[i].rank)
-            return i;
-    }
-    // negative number indicates not found
-    return -1;
-}
 
 void read_card(byte *card) {
-    byte pos = card_in_group(card);
+    char pos = card_in_group(card);
 
     if (pos >= 0) {
         add_to_group(card, pos);
@@ -263,6 +272,7 @@ int main(void) {
             read_card(&buf[i]);
         }
 
+        sort_groups();
         byte hand = rank_hand();
 
         // need to echo back the hand in the current sorted order
