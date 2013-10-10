@@ -198,32 +198,6 @@ byte rank_hand() {
     return NONE;
 }
 
-
-#ifdef DEBUG_MODE
-void send_groups() {
-    byte *comma = (byte *) ",\0";
-    
-    write_buf((byte *) "[\0");
-    for (byte i = 0; i < GROUP_SIZE; i++) {
-        write_buf((byte *) "{\0");
-        serial_write(groups[i].rank);
-        write_buf(comma);
-        serial_write(groups[i].size);
-        write_buf(comma);
-        write_buf((byte *) "[\0");
-        for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
-            write_buf((byte *) "{\0");
-            serial_write(groups[i].cards[j]);
-            if ((j + 1) < GROUP_CARD_SIZE) write_buf(comma);
-        }
-        write_buf((byte *) "]\0");
-        write_buf((byte *) "}\0");
-        if ((i + 1) < GROUP_SIZE) write_buf(comma);
-        write_buf((byte *) "]\0");
-    }
-}
-#endif
-
 int main(void) {
     // set up ports for status lights.
     DDRB = 0xff;
