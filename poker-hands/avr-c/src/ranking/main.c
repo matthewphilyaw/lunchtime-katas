@@ -1,6 +1,6 @@
 #include "poker.h"
 
-#define BaudRate 9600 
+#define BaudRate 115200 
 #define MYUBRR (F_CPU / 16 / BaudRate) - 1
 #define GROUP_CARD_SIZE 4
 
@@ -24,13 +24,13 @@ Group groups[GROUP_SIZE];
 
 byte serial_read() {
     // wait till RxComplete
-    while ((UCSRA & _BV(RXC)) == 0) {;;} 
+    while ((UCSRA & _BV(RXC)) == 0);
     return UDR;
 }
 
 void serial_write(byte DataOut) {
     // wait till TxReady
-    while ((UCSRA & _BV(UDRE)) == 0) {;;} 
+    while ((UCSRA & _BV(UDRE)) == 0);
     UDR = DataOut;
 }
 
@@ -40,7 +40,6 @@ void write_buf(byte *buf) {
 
 void write_buf_newline(byte *buf) {
     write_buf(buf);
-    serial_write('\r'); 
     serial_write('\n'); 
 }
 
@@ -185,10 +184,10 @@ byte rank_hand() {
     if (twos == 2) { return TWO_PAIR; }
     if (twos == 1 && singles == 3) { return PAIR; }
     if (singles == 5) {
-        if ((is_straight() || is_ace_low_straight()) && is_same_suit()) { 
+        if (is_same_suit() && (is_straight() || is_ace_low_straight())) { 
             return STRAIGHT_FLUSH; 
         }
-        if ((is_straight() || is_ace_low_straight()) && !is_same_suit()) { 
+        if (!is_same_suit() && (is_straight() || is_ace_low_straight())) { 
             return STRAIGHT;
         }
         if (!is_straight() && is_same_suit()) { return FLUSH; }
@@ -245,6 +244,11 @@ int main(void) {
     
     byte card_count = 0;
     byte buf[GROUP_SIZE];
+
+    // give anyone who is listening a moment before broadcasting rdy.
+    // probably should just send a rdy message in a loop till someone
+    // responds. But for now this will do.
+    _delay_us(100);
     for (;;) {
         // reset groups - do this each time. Want a clean slate.
         for (byte i = 0; i < GROUP_SIZE; i++) {
@@ -259,7 +263,7 @@ int main(void) {
         RDY; // tell who ever is listening that the ranker 4000 is ready
 
         // fill buffer.
-        while (card_count < 7) {
+        while (card_count < GROUP_SIZE) {
             buf[card_count] = serial_read();
             card_count++;
         }
@@ -274,11 +278,15 @@ int main(void) {
 
         sort_groups();
         byte hand = rank_hand();
+    
+        for (byte i = 0; i < GROUP_SIZE; i++) {
+            for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
+                if (groups[i].cards[j] == 0) continue;
+                serial_write(groups[i].cards[j]);
+            }
+        }
 
-        // need to echo back the hand in the current sorted order
-        // and tack on the hand. Haven't done it yet.
         serial_write(hand);
-        serial_write('\r');
         serial_write('\n');
 
         OK; // ranker 4000 has finished, and output has been sent back
