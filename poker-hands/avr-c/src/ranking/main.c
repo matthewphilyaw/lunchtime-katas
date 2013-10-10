@@ -1,15 +1,30 @@
 #include "poker.h"
 
-#define BaudRate 115200 
+/*********************
+ serial parameters
+**********************/
+#define BaudRate 115200
 #define MYUBRR (F_CPU / 16 / BaudRate) - 1
-#define GROUP_CARD_SIZE 4
 
+/*********************
+ pin aliases
+**********************/
+#define TXD (1 << PIND1)
+
+/*********************
+ constants
+**********************/
 #define GROUP_SIZE 5
-#define LED _BV(0)
-#define OK write_buf_newline((byte *)"ok\0")
-#define RDY write_buf_newline((byte *)"rdy\0")
-#define WT write_buf_newline((byte *)"wt\0")
+#define GROUP_CARD_SIZE 4
+#define EMPTY 0
 
+#define RDY 0xff
+#define ACK 0xfe
+#define ERR 0xfb
+
+/*********************
+ helper macros
+**********************/
 #define rank(c) (c & 0x0f)
 #define suit(c) ((c & 0x30) >> 4)
 #define wild(c) ((c & 0x80) >> 7)
@@ -18,7 +33,7 @@ typedef struct {
     byte     size;
     byte     rank;
     byte     cards[GROUP_CARD_SIZE];
-} Group; 
+} Group;
 
 Group groups[GROUP_SIZE];
 
@@ -34,18 +49,20 @@ void serial_write(byte DataOut) {
     UDR = DataOut;
 }
 
+#ifdef DEBUG_MODE
 void write_buf(byte *buf) {
     for (byte *b = buf; *b != '\0'; b++) serial_write(*b);
 }
 
 void write_buf_newline(byte *buf) {
     write_buf(buf);
-    serial_write('\n'); 
+    serial_write('\n');
 }
+#endif
 
 void insert_into_groups(byte *card) {
     for (byte i = 0; i < GROUP_SIZE; i++) {
-        if (groups[i].rank > 0) continue;
+        if (groups[i].rank != EMPTY) continue;
 
         groups[i].rank = rank(*card);
         groups[i].cards[0] = *card;
@@ -56,15 +73,15 @@ void insert_into_groups(byte *card) {
 
 void add_to_group(byte *card, byte pos) {
     for (byte i = 0; i < GROUP_CARD_SIZE; i++) {
-        if (groups[pos].cards[i] > 0) continue;
+        if (groups[pos].cards[i] != EMPTY) continue;
 
         groups[pos].cards[i] = *card;
         groups[pos].size++;
         return;
-    } 
+    }
 }
 
-char card_in_group(byte *card) {
+char card_in_groups(byte *card) {
     for (byte i = 0; i < GROUP_SIZE; i++) {
         if (groups[i].rank == 0) continue;
         if (rank(*card) == groups[i].rank)
@@ -74,55 +91,88 @@ char card_in_group(byte *card) {
     return -1;
 }
 
-// if a.size is less than b.size, then b needs to go to the left
-// this is usually the otherway around, but I want higher cards to
-// go to the left
-//
-// if the sizes match then if the a.rank is less than b.rank b again
-// needs to got to the left.
-byte keep_shifting(Group *a, Group *b) {
+/******************************************************************************
+ Used with the insertion sort to push large items to the front of the list.
+
+ A is an item in the list, B is the item we are inserting.
+
+ First check group size, as large group size needs to go to the front,
+ if the group size matches then use rank instead, again large ranks need to
+ shift to the front.
+******************************************************************************/
+byte a_less_than_b(Group *a, Group *b) {
     if (a->size == b->size && a->rank < b->rank) return 1;
     if (a->size < b->size) return 1;
 
     return 0;
 }
 
-// insertion sort. Higher group sizes or cards will be first.
+
+/******************************************************************************
+ Simple insertion sort.
+
+ Only caveat is that large items are moved to the front.
+******************************************************************************/
 void sort_groups() {
     byte j;
     Group tmp;
     for (byte i = 1; i < GROUP_SIZE; i++) {
         tmp = groups[i];
         j = i;
-        while (j > 0 && keep_shifting(&groups[j - 1], &tmp)) {
-           groups[j] = groups[j - 1]; 
+        while (j > 0 && a_less_than_b(&groups[j - 1], &tmp)) {
+           groups[j] = groups[j - 1];
            j--;
         }
         groups[j] = tmp;
     }
 }
 
-// given that at this point we have ruled out any duplicates by checking
-// for a pair, two pair, three of a kind, four of a kind and a full-house
-// and we have sorted by rank highest to lowest the following should be true:
-//
-// if the first card minus the last card is four then the cards in between
-// have no other choice but to be in order and sequential.
+/******************************************************************************
+ Given that there are no duplicates and the cards are in order from high to low
+ the following should be true:
 
-byte is_straight() { 
+ If the first card minus the last card is four then the cards in between
+ have no other choice but to be in order and sequential.
+
+ Example:
+    sequential
+    10 9 8 7 6 | 10 - 6 = 4
+
+    just in order
+    10 8 6 5 2 | 10 - 2 = 8
+
+ Having the constraint of no duplicates eliminates the possibility for the
+ three numbers between the first and last (assuming 5 cards) to be anything
+ other than the natural sequence between first and last card given they are in
+ order
+******************************************************************************/
+byte is_straight() {
     if (groups[0].rank - groups[GROUP_SIZE - 1].rank == 4) return 1;
-    return 0; 
+    return 0;
 }
 
-// an exception to the normal flow
-// in that an ace can either be a high card or a low card
-// which only effects the straight essentially.
+/******************************************************************************
+ This is an exception to the normal flow
+ in that an ace can either be a high card or a low card
+ which only effects the straight essentially.
+
+ It is very similar to the is_straight function, but we have a more known
+ conditions coming into this method.
+
+ Given that a straight wasn't found, then we can look to see if the last card
+ is a two and the first card is an ace to determine whether we have potential
+ for an ace low straight. If both of those are found, then if the second card
+ is a 5, then we have an ace low straight.
+
+ This assume no duplicates are present and the cards are in order from high
+ to low.
+******************************************************************************/
 byte is_ace_low_straight() {
-    if (groups[0].rank == 14 && 
+    if (groups[0].rank == 14 &&
         groups[GROUP_SIZE - 1].rank == 2 &&
         groups[1].rank == 5) {
 
-        Group grp = groups[0]; 
+        Group grp = groups[0];
         for (byte i = 1; i < GROUP_SIZE; i++) {
             groups[i - 1] = groups[i];
         }
@@ -134,18 +184,20 @@ byte is_ace_low_straight() {
     return 0;
 }
 
-byte is_same_suit() { 
-    // take the first rank, and compare it to all the others
-    // they should all match, otherwise return false
+/******************************************************************************
+ Take the first rank, and compare it to all the others they should all match,
+ otherwise return false
+******************************************************************************/
+byte is_same_suit() {
     for (byte i = 1; i < GROUP_SIZE; i++) {
         if (suit(groups[0].cards[0]) != suit(groups[i].cards[0])) return 0;
     }
-    return 1; 
+    return 1;
 }
 
 
 void read_card(byte *card) {
-    char pos = card_in_group(card);
+    char pos = card_in_groups(card);
 
     if (pos >= 0) {
         add_to_group(card, pos);
@@ -184,10 +236,10 @@ byte rank_hand() {
     if (twos == 2) { return TWO_PAIR; }
     if (twos == 1 && singles == 3) { return PAIR; }
     if (singles == 5) {
-        if (is_same_suit() && (is_straight() || is_ace_low_straight())) { 
-            return STRAIGHT_FLUSH; 
+        if (is_same_suit() && (is_straight() || is_ace_low_straight())) {
+            return STRAIGHT_FLUSH;
         }
-        if (!is_same_suit() && (is_straight() || is_ace_low_straight())) { 
+        if (!is_same_suit() && (is_straight() || is_ace_low_straight())) {
             return STRAIGHT;
         }
         if (!is_straight() && is_same_suit()) { return FLUSH; }
@@ -199,50 +251,38 @@ byte rank_hand() {
 }
 
 int main(void) {
-    // set up ports for status lights.
-    DDRB = 0xff;
-    DDRD = _BV(1);
 
-    // turn on a status light 
-    // will go off when serial com is setup
-    PORTB = LED;
-
-    // start serial 
+    // start serial
+    DDRD ^= TXD; // make sure the TXD pin is set to out
     UBRRH = (byte) ((MYUBRR) >> 8);
     UBRRL = (byte) MYUBRR;
     UCSRB = (1 << RXEN) | (1 << TXEN);
     UCSRC = 3 << UCSZ0;
 
-    // toggle light off - serial setup. Will say hello shortly
-    PORTB ^= LED; 
-    
-    byte card_count = 0;
+    byte card_count;
     byte buf[GROUP_SIZE];
 
-    // give anyone who is listening a moment before broadcasting rdy.
-    // probably should just send a rdy message in a loop till someone
-    // responds. But for now this will do.
-    _delay_us(100);
     for (;;) {
         // reset groups - do this each time. Want a clean slate.
         for (byte i = 0; i < GROUP_SIZE; i++) {
-            groups[i] = (Group ) { .rank = 0,
-                                   .size = 0,
-                                   .cards = {0, 0, 0, 0 } };
-        } 
+            groups[i] = (Group ) { .rank = EMPTY,
+                                   .size = EMPTY,
+                                   .cards = { EMPTY, EMPTY, EMPTY, EMPTY }};
+        }
 
         // reset buffer to zero, don't want junk data.
-        for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = 0;
+        for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = EMPTY;
 
-        RDY; // tell who ever is listening that the ranker 4000 is ready
+        while (serial_read() != RDY);
 
         // fill buffer.
+        card_count = 0;
         while (card_count < GROUP_SIZE) {
             buf[card_count] = serial_read();
             card_count++;
         }
 
-        WT; // ranker 4000 is processing.
+        serial_write(ACK);
 
         // this is where read_card will go, and then following ranking
         // methods.
@@ -252,19 +292,15 @@ int main(void) {
 
         sort_groups();
         byte hand = rank_hand();
-    
+
         for (byte i = 0; i < GROUP_SIZE; i++) {
             for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
-                if (groups[i].cards[j] == 0) continue;
+                if (groups[i].cards[j] == EMPTY) continue;
                 serial_write(groups[i].cards[j]);
             }
         }
 
         serial_write(hand);
-        serial_write('\n');
-
-        OK; // ranker 4000 has finished, and output has been sent back
-
-        card_count = 0;
+        serial_write(ACK);
     }
 }
