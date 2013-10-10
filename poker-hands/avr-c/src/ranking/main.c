@@ -274,6 +274,7 @@ int main(void) {
         for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = EMPTY;
 
         while (serial_read() != RDY);
+        serial_write(ACK);
 
         // fill buffer.
         card_count = 0;
