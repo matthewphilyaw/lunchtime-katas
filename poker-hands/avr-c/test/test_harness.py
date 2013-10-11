@@ -25,107 +25,155 @@ card_suit = {
 }
 
 hand_type = {
-    0 : none,
-    1 : high_card,
-    2 : pair,
-    3 : two_pair,
-    4 : three_of_a_kind,
-    5 : straight,
-    6 : flush,
-    7 : full_house,
-    8 : four_of_a_kind,
-    9 : straight_flush
+    0 : 'none',
+    1 : 'high_card',
+    2 : 'pair',
+    3 : 'two_pair',
+    4 : 'three_of_a_kind',
+    5 : 'straight',
+    6 : 'flush',
+    7 : 'full_house',
+    8 : 'four_of_a_kind',
+    9 : 'straight_flush'
 }
 
 rank_mask = ord(b'\x0f')
 suit_mask = ord(b'\x30')
 wild_mask = ord(b'\x80') # not used for now
 
-hand = b'\x02\x23\x35\x14\x1e'
-
-hands = {
-    'high_card' : {
+hands = [
+    {
+        'name' : 'high_card',
         'hand' : b'\x03\x15\x09\x2a\x1c',
-        'result': b'\x2a\x1c\x09\x15\x03\x01'
+        'expected': b'\x1c\x2a\x09\x15\x03\x01'
     },
-    'pair' : {
+    {
+        'name' : 'pair',
         'hand' : b'\x03\x13\x09\x2a\x1c',
-        'result': b'\x03\x13\x2a\x1c\x09\x02'
+        'expected': b'\x03\x13\x1c\x2a\x09\x02'
     },
-    'two_pair' : {
+    {
+        'name' : 'two_pair',
         'hand' : b'\x03\x13\x29\x39\x1c',
-        'result': b'\x29\x39\x03\x13\x1c\x03'
+        'expected': b'\x29\x39\x03\x13\x1c\x03'
     },
-    'three_of_a_kind' : {
+    {
+        'name' : 'three_of_a_kind',
         'hand' : b'\x1c\x13\x29\x39\x19',
-        'result': b'\x29\x39\x19\x1c\x13\x04'
+        'expected': b'\x29\x39\x19\x1c\x13\x04'
     },
-    'straight' : {
+    {
+        'name' : 'straight',
         'hand' : b'\x32\x05\x23\x34\x16',
-        'result': b'\x16\x05\x34\x23\x32\x05'
+        'expected': b'\x16\x05\x34\x23\x32\x05'
     },
-    'straight_ace_low' : {
-        'hand' : b'\x32\x05\x23\x34\x1a',
-        'result': b'\x05\x34\x23\x32\x1a\x05'
+    {
+        'name' : 'straight_ace_low',
+        'hand' : b'\x32\x05\x23\x34\x1e',
+        'expected': b'\x05\x34\x23\x32\x1e\x05'
     },
-    'flush' : {
+    {
+        'name' : 'flush',
         'hand' : b'\x23\x25\x29\x2a\x2c',
-        'result': b'\x2a\x2c\x29\x25\x23\x26'
+        'expected': b'\x2c\x2a\x29\x25\x23\x06'
     },
-    'full_house' : {
+    {
+        'name' : 'full_house',
         'hand' : b'\x13\x03\x29\x39\x19',
-        'result': b'\x29\x39\x19\x13\x03\x07'
+        'expected': b'\x29\x39\x19\x13\x03\x07'
     },
-    'four_of_a_kind' : {
+    {
+        'name' : 'four_of_a_kind',
         'hand' : b'\x1c\x09\x29\x39\x19',
-        'result': b'\x09\x29\x39\x19\x1c\x08'
+        'expected': b'\x09\x29\x39\x19\x1c\x08'
     },
-    'straight_flush' : {
+    {
+        'name' : 'straight_flush',
         'hand' : b'\x32\x35\x33\x34\x36',
-        'result': b'\x36\x35\x34\x33\x32\x09'
+        'expected': b'\x36\x35\x34\x33\x32\x09'
     },
-    'straight_flush_ace_low' : {
-        'hand' : b'\x32\x35\x33\x34\x3a',
-        'result': b'\x35\x34\x33\x32\x3a\x09'
+    {
+        'name' : 'straight_flush_ace_low',
+        'hand' : b'\x32\x35\x33\x34\x3e',
+        'expected': b'\x35\x34\x33\x32\x3e\x09'
     }
-}
+]
 
 def get_rank(c):
-    ord(c) & rank_mask
+    return c & rank_mask
 
 def get_suit(c):
-    (ord(c) & suit_mask) >> 4
+    return (c & suit_mask) >> 4
 
 def get_wild(c): # not used for now
-    (ord(c) & wild_mask) >> 7
+    return (c & wild_mask) >> 7
 
 def check_for_ack(b):
-    if ack != b'\xfe':
+    if b != b'\xfe':
         raise Exception('Ranker 4000 did not send back ack - timed out')
 
 def print_cards(output):
     for c in output:
-        print('{0}{1}'.format(card_face[get_rank(c)], card_suit(get_suit(c))))
+        print('{0}{1}'.format(card_face[get_rank(c)], card_suit[get_suit(c)]))
 
-ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
-print('sent ready flag')
-ser.write(b'\xff') # send ready flag
+ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=3)
 
-check_for_ack(serial.read(1)[0])
-print('ranker 4000 responded with ack')
+numtest = 0
+numpass = 0
+for test in hands:
+    numtest += 1
+    print('running ' + test['name'])
+    print('sent ready flag\n')
+    ser.write(b'\xff') # send ready flag
 
-print('sending:')
-print_cards(hands)
-serial.write(hands)
+    check_for_ack(ser.read())
+    print('ranker 4000 responded with ack\n')
 
-check_for_ack(serial.read(1)[0])
-print('ranker 4000 responded with ack')
+    hand = test['hand']
+    expected = test['expected']
 
-output = serial.read(6)
-print('received')
-print_cards(output[:5])
-print(hand_type[ord(output[-1])])
+    print('sending:')
+    print_cards(hand)
+    print()
 
-check_for_ack(serial.read(1)[0])
-print('ranker 4000 responded with ack')
+    print('expected output:')
+    print_cards(expected[:5])
+    print(hand_type[expected[-1]])
+    print()
+
+    for c in hand:
+        ba = bytearray(1)
+        ba[0] = c
+        ser.write(ba)
+        check_for_ack(ser.read())
+
+    check_for_ack(ser.read())
+    print('ranker 4000 responded with ack\n')
+
+    output = ser.read(6)
+
+    print('received')
+    print_cards(output[:5])
+    print(hand_type[output[-1]])
+    print()
+
+    check_for_ack(ser.read())
+    print('ranker 4000 responded with ack\n')
+
+    print('verifying output')
+
+    if expected == output:
+        numpass += 1
+        print('output matches expected output')
+    else:
+        print('output does not match expected output')
+
+    print()
+    print('-------------------------------------------')
+    print()
+
+if numpass == numtest:
+    print('all tests passed')
+else:
+    print('failed test cases')

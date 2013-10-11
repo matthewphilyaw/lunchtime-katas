@@ -261,17 +261,18 @@ int main(void) {
 
     byte card_count;
     byte buf[GROUP_SIZE];
-
+    byte hand;
+    byte i = 0;
     for (;;) {
         // reset groups - do this each time. Want a clean slate.
-        for (byte i = 0; i < GROUP_SIZE; i++) {
+        for (i = 0; i < GROUP_SIZE; i++) {
             groups[i] = (Group ) { .rank = EMPTY,
                                    .size = EMPTY,
                                    .cards = { EMPTY, EMPTY, EMPTY, EMPTY }};
         }
 
         // reset buffer to zero, don't want junk data.
-        for (byte i = 0; i < GROUP_SIZE; i++) buf[i] = EMPTY;
+        for (i = 0; i < GROUP_SIZE; i++) buf[i] = EMPTY;
 
         while (serial_read() != RDY);
         serial_write(ACK);
@@ -281,20 +282,20 @@ int main(void) {
         while (card_count < GROUP_SIZE) {
             buf[card_count] = serial_read();
             card_count++;
+            serial_write(ACK);
         }
 
         serial_write(ACK);
 
         // this is where read_card will go, and then following ranking
         // methods.
-        for (byte i = 0; i < GROUP_SIZE; i++) {
+        for (i = 0; i < GROUP_SIZE; i++) {
             read_card(&buf[i]);
         }
 
         sort_groups();
-        byte hand = rank_hand();
-
-        for (byte i = 0; i < GROUP_SIZE; i++) {
+        hand = rank_hand();
+        for (i = 0; i < GROUP_SIZE; i++) {
             for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
                 if (groups[i].cards[j] == EMPTY) continue;
                 serial_write(groups[i].cards[j]);
