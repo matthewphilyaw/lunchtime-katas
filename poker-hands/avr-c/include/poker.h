@@ -8,7 +8,7 @@
 
 typedef unsigned char byte;
 
-#define NONE            (byte)0
+#define INVALID_HAND    (byte)0
 #define HIGH_CARD       (byte)1
 #define PAIR            (byte)2
 #define TWO_PAIR        (byte)3

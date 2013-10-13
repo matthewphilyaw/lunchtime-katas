@@ -15,7 +15,7 @@
  constants
 **********************/
 #define GROUP_SIZE 5
-#define GROUP_CARD_SIZE 4
+#define GROUP_CARD_SIZE 5
 #define EMPTY 0
 
 #define RDY 0xff
@@ -195,7 +195,6 @@ byte is_same_suit() {
     return 1;
 }
 
-
 void read_card(byte *card) {
     char pos = card_in_groups(card);
 
@@ -205,6 +204,46 @@ void read_card(byte *card) {
     }
 
     insert_into_groups(card);
+}
+
+/******************************************************************************
+ Simple validation of a hand.
+
+ It ensures that the cards present are legal cards, however it doesn't
+ Guarantee that the cards are legal over a series of hands. 
+
+ For example you could have a legal hand according to this function,
+ but in the same round of poker if another hand comes in with the same
+ cards it wouldn't not know this, so some validation needs to happen
+ from the client side. 
+
+ Checks:
+    - Ensure cards are between 0x0e and 0x02 inclusive. 0x0f and 0x02 are 
+      invalid and 0x00 is reserved as empty.
+
+    - Ensure that no group size is equal to 5 which would be 5 of the same face
+      value.
+
+    - Ensure that for a given group (same face value) that no two cards hane
+      the same suit. Suit should be unique per group.
+
+******************************************************************************/
+byte validate_hand() {
+    for (byte i = 0; i < GROUP_SIZE; i++) {
+        Group *grp = &groups[i];
+
+        if (grp->rank == EMPTY) continue;
+        if (grp->rank ==  0x0f || grp->rank == 0x01) return INVALID_HAND;
+        if (grp->size == 5) return INVALID_HAND;
+        if (grp->size > 1) {
+            for (byte j = 1; j < GROUP_CARD_SIZE; j++) {
+                if (grp->cards[j] == EMPTY) continue;
+                if (suit(grp->cards[j - 1]) == suit(grp->cards[j]))
+                    return INVALID_HAND;
+                
+            } 
+        }
+    }    
 }
 
 byte rank_hand() {
@@ -230,11 +269,11 @@ byte rank_hand() {
         }
     }
 
-    if (fours == 1) { return FOUR_OF_A_KIND; }
-    if (threes == 1 && twos == 0) { return THREE_OF_A_KIND; }
-    if (threes == 1 && twos  == 1) { return FULL_HOUSE; }
-    if (twos == 2) { return TWO_PAIR; }
-    if (twos == 1 && singles == 3) { return PAIR; }
+    if (fours == 1)                return FOUR_OF_A_KIND;
+    if (threes == 1 && twos == 0)  return THREE_OF_A_KIND;
+    if (threes == 1 && twos  == 1) return FULL_HOUSE;
+    if (twos == 2)                 return TWO_PAIR;
+    if (twos == 1 && singles == 3) return PAIR;
     if (singles == 5) {
         if (is_same_suit() && (is_straight() || is_ace_low_straight())) {
             return STRAIGHT_FLUSH;
@@ -242,12 +281,21 @@ byte rank_hand() {
         if (!is_same_suit() && (is_straight() || is_ace_low_straight())) {
             return STRAIGHT;
         }
-        if (!is_straight() && is_same_suit()) { return FLUSH; }
+        if (!is_straight() && is_same_suit()) return FLUSH;
 
         return HIGH_CARD;
     }
 
-    return NONE;
+    return INVALID_HAND;
+}
+
+void send_cards() {
+    for (i = 0; i < GROUP_SIZE; i++) {
+        for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
+            if (groups[i].cards[j] == EMPTY) continue;
+            serial_write(groups[i].cards[j]);
+        }
+    }
 }
 
 int main(void) {
@@ -294,13 +342,19 @@ int main(void) {
         }
 
         sort_groups();
-        hand = rank_hand();
-        for (i = 0; i < GROUP_SIZE; i++) {
-            for (byte j = 0; j < GROUP_CARD_SIZE; j++) {
-                if (groups[i].cards[j] == EMPTY) continue;
-                serial_write(groups[i].cards[j]);
-            }
+        
+        // if we have an invalid hand, write cards back
+        // and send back the INVALID_HAND type.
+        // then send an ACK, and then wait for a ready state.
+        if (validate_hand() == INVALID_HAND) {
+            send_cards();
+            serial_write(INVALID_HAND);
+            serial_write(ACK);
+            continue;
         }
+
+        hand = rank_hand();
+        send_cards();
 
         serial_write(hand);
         serial_write(ACK);
