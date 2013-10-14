@@ -52,7 +52,7 @@ The validation rules are:
 
 If any of those checks fail an INVALID_HAND type is sent back to the client. 
 
-These checks are only in the context of the given hand, so it doesn't check to see if a particular card has been used by a previous hand thus the given hand should not contain it (for example this would apply to five card draw and seven card stud)
+These checks are only in the context of the given hand, so it doesn't check to see if a particular card has been used by a previous hand thus the given hand should not contain those cards (for example this would apply to five card draw and seven card stud)
 
 ## Ranking
 Ranking a poker hand turns out to be an interesting challenge. This section will attempt to cover the approach taken by the ranking module and why the approach was taken. 
