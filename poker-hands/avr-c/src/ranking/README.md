@@ -75,6 +75,7 @@ Keeping with the example above if we order the cards according to large group si
 
 
 (c = clubs, d = diamonds, h = hearts, s = spades)
+
 before:
 ```
 hand 1:  3c 8d 9h 8c 3d
