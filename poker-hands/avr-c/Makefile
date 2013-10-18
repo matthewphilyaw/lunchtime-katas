@@ -3,11 +3,13 @@
 all: build 
 
 build:
+	ctags --recurse src include
 	(cd build; make --no-print-directory)
 
 rebuild: destroy init all
 
 clean:
+	rm tags
 	(cd build; make clean)
 
 destroy:

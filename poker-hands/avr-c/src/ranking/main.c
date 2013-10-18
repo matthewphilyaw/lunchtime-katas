@@ -17,11 +17,7 @@ void send_cards(Group *groups) {
 int main(void) {
 
     // start serial
-    DDRD ^= TXD; // make sure the TXD pin is set to out
-    UBRRH = (byte) ((MYUBRR) >> 8);
-    UBRRL = (byte) MYUBRR;
-    UCSRB = (1 << RXEN) | (1 << TXEN);
-    UCSRC = 3 << UCSZ0;
+    serial_init();
 
     byte card_count;
     byte buf[GROUP_SIZE];

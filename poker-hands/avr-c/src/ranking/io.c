@@ -1,5 +1,13 @@
 #include "ranking/io.h"
 
+void serial_init() {
+    DDRD ^= TXD; // make sure the TXD pin is set to out
+    UBRRH = (byte) ((MYUBRR) >> 8);
+    UBRRL = (byte) MYUBRR;
+    UCSRB = (1 << RXEN) | (1 << TXEN);
+    UCSRC = 3 << UCSZ0;
+}
+
 byte serial_read() {
     // wait till RxComplete
     while ((UCSRA & _BV(RXC)) == 0);

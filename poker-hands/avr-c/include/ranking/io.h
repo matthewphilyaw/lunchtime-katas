@@ -3,6 +3,7 @@
 
 #include "ranking.h"
 
+void serial_init();
 byte serial_read();
 void serial_write(byte DataOut);
 #ifdef DEBUG_MODE
