@@ -9,7 +9,6 @@ IF(DEBUG_MODE)
     ADD_DEFINITIONS(-DDEBUG_MODE)
 ENDIF(DEBUG_MODE)
 
-add_avr_executable(
-    ranking
-    main.c
-)
+file(GLOB_RECURSE OE_SOURCES "*.c")
+message(${OE_SOURCES})
+add_avr_executable(ranking "${OE_SOURCES}")
