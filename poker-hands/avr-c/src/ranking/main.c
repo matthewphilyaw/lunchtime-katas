@@ -58,7 +58,7 @@ int main(void) {
         // if we have an invalid hand, write cards back
         // and send back the INVALID_HAND type.
         // then send an ACK, and then wait for a ready state.
-        if (validate_hand(grps) == INVALID_HAND) {
+        if (valid_hand(grps)) {
             send_cards(grps);
             serial_write(INVALID_HAND);
             serial_write(ACK);

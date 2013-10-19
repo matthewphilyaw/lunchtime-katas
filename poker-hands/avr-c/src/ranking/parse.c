@@ -100,7 +100,7 @@ void parse(Group *groups, byte *card) {
       the same suit. Suit should be unique per group.
 
 ******************************************************************************/
-byte validate_hand(Group *groups) {
+byte valid_hand(Group *groups) {
     for (byte i = 0; i < GROUP_SIZE; i++) {
         Group *grp = &groups[i];
 
@@ -111,9 +111,10 @@ byte validate_hand(Group *groups) {
             for (byte j = 1; j < GROUP_CARD_SIZE; j++) {
                 if (grp->cards[j] == EMPTY) continue;
                 if (suit(grp->cards[j - 1]) == suit(grp->cards[j]))
-                    return INVALID_HAND;
+                    return 0;
                 
             } 
         }
     }    
+    return 1;
 }
