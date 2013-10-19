@@ -3,7 +3,7 @@
 all: build 
 
 build:
-	ctags --recurse src include
+	ctags -R --languages=c,c++ --c++-kinds=+p --fields=+iaS --extra=+q src include
 	(cd build; make --no-print-directory)
 
 rebuild: destroy init all
