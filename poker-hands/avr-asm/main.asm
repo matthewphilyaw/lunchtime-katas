@@ -50,13 +50,13 @@ usart_init:
     ret
 
 tx:
-    sbi UCSRA, UDRE
+    sbis UCSRA, UDRE
     rjmp tx
     out UDR, trbuf
     ret
 
 rx:
-    sbi UCSRA, RXC
+    sbis UCSRA, RXC
     rjmp rx
     in trbuf, UDR
     ret
