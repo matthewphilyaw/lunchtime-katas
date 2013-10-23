@@ -7,7 +7,7 @@
 .equ baud = 115200
 .equ F_CPU = 14745600
 
-.def trbuf r18
+.def trbuf = r18
 
     rjmp reset
     reti ; unused interrupt
