@@ -1,7 +1,3 @@
-; Program   :   Poker hand kata
-;
-;
-
 .include "tn2313def.inc"
 
 .equ baud = 115200
@@ -30,7 +26,7 @@
     reti ; unused interrupt
 
 reset:
-    ldi r16, low(RAMEND)
+    ldi r16, lo8(RAMEND)
     out SPL, r16
     rjmp main
 
@@ -38,8 +34,8 @@ usart_init:
     ldi r16, (1 << DDD1) ; Ensure TX pin is set to output
     out DDRD, r16
 
-    ldi r17, high(F_CPU/(16*baud)-1)
-    ldi r16, low(F_CPU/(16*baud)-1)
+    ldi r17, hi8(F_CPU/(16*baud)-1)
+    ldi r16, lo8(F_CPU/(16*baud)-1)
     out UBRRH, r17
     out UBRRL, r16
 
