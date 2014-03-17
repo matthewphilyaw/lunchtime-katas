@@ -8,7 +8,7 @@ fn main() {
     let mut stdin = BufferedReader::new(io::stdin());
     let x = Card { value: card::Ace, suit: card::Clubs };
 
-    println!("Value: {}, Suit: {}", x.suit.to_str(), x.suit.to_str())
+    println!("Value: {}, Suit: {}", x.value.to_str(), x.suit.to_str())
     /*
     // Loop through each line.
     for l in stdin.lines() {
@@ -18,4 +18,3 @@ fn main() {
     println!("{:?}", x);
     */
 }
-

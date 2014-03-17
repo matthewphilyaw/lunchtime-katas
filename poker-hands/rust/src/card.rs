@@ -35,12 +35,18 @@ pub enum Value {
     Ace
 }
 
-/*impl ToStr for Value {
+impl ToStr for Value {
     fn to_str(&self) -> ~str {
-        let n = *self as int;
-        n.to_str()
+        match *self {
+            Ace => ~"A",
+            King => ~"K",
+            Queen => ~"Q",
+            Jack => ~"J",
+            Ten => ~"T",
+            _ => self.to_str()
+        }
     }
-}*/
+}
 
 pub struct Card {
     value: Value,
