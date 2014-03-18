@@ -6,9 +6,9 @@ mod card;
 
 fn main() {
     let mut stdin = BufferedReader::new(io::stdin());
-    let x = Card { value: card::Ace, suit: card::Clubs };
+    let x = Card { value: 2 as card::value, suit: card::Clubs };
 
-    println!("Value: {}, Suit: {}", x.value.to_str(), x.suit.to_str())
+    println!("{}", x);
     /*
     // Loop through each line.
     for l in stdin.lines() {
